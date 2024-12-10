@@ -1,0 +1,65 @@
+name: CI
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y debootstrap xorriso genisoimage binutils squashfs-tools grub-pc-bin grub-efi-amd64-bin dosfstools mtools xz-utils liblz4-tool zstd git curl rsync
+
+    - name: Run build
+      run: |
+        echo "Starting build..."
+        sudo ./minios-live -
+        echo "Build completed."
+
+    - name: Archive build output
+      uses: actions/upload-artifact@v2
+      with:
+        name: minios-iso
+        path: build/iso/*.iso
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: minios-iso
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref == 'refs/heads/master' && github.sha || github.ref_name }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets
+      run: |
+        for iso in minios-iso/*.iso; do
+          asset_name=$(basename $iso)
+          echo "Uploading $asset_name"
+          curl \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: $(file -b --mime-type $iso)" \
+            --data-binary @"$iso" \
+            "${{ steps.create_release.outputs.upload_url }}?name=$asset_name"
+        done

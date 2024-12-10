@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -e          # exit on error
+set -o pipefail # exit on pipeline error
+set -u          # treat unset variable as error
+
+. /minioslib || exit 1
+
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+pkg update
+
+install_packages --package-list "$SCRIPT_DIR/$PACKAGE_VARIANT.list"
+
+if [ $LOCALE != "en_US" ]; then
+    install_packages --package-list "$SCRIPT_DIR/$PACKAGE_VARIANT-l10n.list"
+fi
+
+rm -f /usr/share/applications/xterm.desktop

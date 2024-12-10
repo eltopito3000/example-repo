@@ -1,0 +1,23 @@
+#!/bin/bash
+
+: ${BUILD_SCRIPTS:="linux-live"}
+
+export PATH=.:./tools:../tools:/usr/sbin:/usr/bin:/sbin:/bin:/
+
+. /minioslib || exit 1
+. /minios-build.conf || exit 1
+
+console_colors
+
+# build initramfs image
+echo -e "=====> ${CYAN}Building intramfs image ...${ENDCOLOR}"
+echo -e "=====  ${YELLOW}KERNEL=${KERNEL}${ENDCOLOR}"
+echo -e "=====  ${YELLOW}KERNEL_BPO=${KERNEL_BPO}${ENDCOLOR}"
+echo -e "=====  ${YELLOW}KERNEL_AUFS=${KERNEL_AUFS}${ENDCOLOR}"
+
+cd /$BUILD_SCRIPTS/initramfs/livekit-mos
+chmod 755 ./mkinitrfs
+INITRAMFS=$(./mkinitrfs "$KERNEL")
+if [ -n "$INITRAMFS" ]; then
+	mv "$INITRAMFS" /boot/initrfs.img
+fi

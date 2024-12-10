@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e          # exit on error
+set -o pipefail # exit on pipeline error
+set -u          # treat unset variable as error
+
+. "/minioslib" || exit 1
+. "/minios-build.conf" || exit 1
+
+install_build_packages() {
+    local HEADERS_PACKAGE="${1}"
+    pkg install ${BPO} ${HEADERS_PACKAGE} gcc make build-essential libelf-dev debhelper dpkg-dev dkms bc git
+}
+
+if [ "${KERNEL_BUILD_DKMS}" = "true" ]; then
+    KERNEL_VERSION=$(echo $KERNEL | cut -d'.' -f1,2)
+    if [ "${KERNEL_BPO}" = "true" ] && [ "${DISTRIBUTION}" = "bookworm" ]; then
+        BPO="-t ${DISTRIBUTION}-backports"
+    else
+        BPO=""
+    fi
+    case "${DISTRIBUTION_TYPE}" in
+    "debian")
+        if [ "${KERNEL_AUFS}" = "true" ] && { [ "${DISTRIBUTION_PHASE}" = "current" ] || [ "${DISTRIBUTION_PHASE}" = "future" ]; }; then
+            install_build_packages "linux-headers-${KERNEL_VERSION}-mos-${KERNEL_ARCH}"
+        else
+            if [ "${KERNEL_TYPE}" = "default" ]; then
+                install_build_packages "linux-headers-${KERNEL_ARCH}"
+            else
+                install_build_packages "linux-headers-${KERNEL_TYPE}-${KERNEL_ARCH}"
+            fi
+        fi
+        ;;
+    "ubuntu")
+        install_build_packages "linux-headers-${KERNEL_VERSION}-mos-${KERNEL_ARCH}"
+        ;;
+    esac
+
+    if [ "${DISTRIBUTION}" != "jammy" ]; then
+        pkg install ${BPO} broadcom-sta-dkms
+    fi
+    if [ "${DISTRIBUTION_TYPE}" = "debian" ] && [ "${DISTRIBUTION_PHASE}" = "legacy" ]; then
+        pkg install ${BPO} aufs-dkms
+    fi
+
+    if ([ "${PACKAGE_VARIANT}" = "toolbox" ] || [ "${PACKAGE_VARIANT}" = "ultra" ] || [ "${PACKAGE_VARIANT}" = "puzzle" ]) && [ "${DISTRIBUTION_ARCH}" = "amd64" ]; then
+        echo "zfs-dkms        zfs-dkms/note-incompatible-licenses     note" | debconf-set-selections -v
+        pkg install ${BPO} zfs-dkms
+    fi
+fi
