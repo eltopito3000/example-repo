@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# example-repo
-=======
 # ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/minios-linux/minios-live/total?style=for-the-badge&logoSize=30&label=%20TOTAL%20DOWNLOADS&labelColor=white&color=orange)
 
 ![MiniOS](images/minios.png)
@@ -31,4 +28,3 @@ MiniOS provides two powerful tools for building customized ISO images:
 ## ✍️ Author
 
 Created by [crims0n](https://github.com/crim50n).  Learn more at [minios.dev](https://minios.dev).
->>>>>>> da6553dc5dece395151d4e1daa17b7fff7c9505a
